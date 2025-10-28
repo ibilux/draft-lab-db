@@ -17,6 +17,8 @@ export type SQLValue =
 
 export type SQLRow = Record<string, SQLValue>
 
+export type SQLParam = SQLValue[] | { [paramName: string]: SQLValue }
+
 export interface RawResultData {
 	columns: string[]
 	rows: SQLValue[][] | SQLValue[]
@@ -32,11 +34,11 @@ export interface DriverConfig {
 
 export interface DriverStatement {
 	sql: string
-	params?: SQLValue[]
+	params?: SQLParam
 	method?: SQLiteMethod
 }
 
 export interface Statement {
 	sql: string
-	params: SQLValue[]
+	params: SQLParam
 }

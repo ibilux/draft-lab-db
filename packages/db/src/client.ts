@@ -1,5 +1,5 @@
 import { CoreSQLite } from "./core-sqlite"
-import type { SQLValue } from "./types"
+import type { SQLParam, SQLValue } from "./types"
 
 export class Client {
 	private db: CoreSQLite
@@ -9,44 +9,36 @@ export class Client {
 		this.db.setConfig({ databasePath })
 	}
 
-	async sql<T = Record<string, SQLValue>>(
-		queryTemplate: TemplateStringsArray | string,
-		...params: SQLValue[]
-	): Promise<T[]> {
-		const sql = this.buildQuery(queryTemplate, params)
-		const result = await this.db.exec({ sql, params: [], method: "all" })
+	async sql<T = Record<string, SQLValue>>(sql: string, params: SQLParam): Promise<T[]> {
+		const result = await this.db.exec({ sql, params, method: "all" })
 
 		return this.convertToObjects<T>(result)
 	}
 
-	async query<T = Record<string, SQLValue>>(
-		sql: string,
-		params: SQLValue[] = []
-	): Promise<T[]> {
+	async query<T = Record<string, SQLValue>>(sql: string, params: SQLParam = []): Promise<T[]> {
 		const result = await this.db.exec({ sql, params, method: "all" })
 		return this.convertToObjects<T>(result)
 	}
 
 	async get<T = Record<string, SQLValue>>(
 		sql: string,
-		params: SQLValue[] = []
+		params: SQLParam = []
 	): Promise<T | undefined> {
 		const result = await this.db.exec({ sql, params, method: "get" })
 		const objects = this.convertToObjects<T>(result)
 		return objects[0]
 	}
 
-	async run(sql: string, params: SQLValue[] = []): Promise<void> {
+	async run(sql: string, params: SQLParam = []): Promise<void> {
 		await this.db.exec({ sql, params, method: "run" })
 	}
 
 	async batch<T>(callback: (tx: BatchInterface) => T | Promise<T>): Promise<T> {
-		const statements: Array<{ sql: string; params: SQLValue[] }> = []
+		const statements: Array<{ sql: string; params: SQLParam }> = []
 
 		const tx: BatchInterface = {
-			sql: async (queryTemplate, ...params) => {
-				const sql = this.buildQuery(queryTemplate, params)
-				statements.push({ sql, params: [] })
+			sql: async (sql, params) => {
+				statements.push({ sql, params })
 				return []
 			},
 			query: async (sql, params = []) => {
@@ -74,12 +66,11 @@ export class Client {
 	}
 
 	async transaction<T>(callback: (tx: TransactionInterface) => T | Promise<T>): Promise<T> {
-		const statements: Array<{ sql: string; params: SQLValue[] }> = []
+		const statements: Array<{ sql: string; params: SQLParam }> = []
 
 		const tx: TransactionInterface = {
-			sql: async (queryTemplate, ...params) => {
-				const sql = this.buildQuery(queryTemplate, params)
-				statements.push({ sql, params: [] })
+			sql: async (sql, params) => {
+				statements.push({ sql, params })
 				return []
 			},
 			query: async (sql, params = []) => {
@@ -125,21 +116,6 @@ export class Client {
 		await this.db.destroy()
 	}
 
-	private buildQuery(
-		queryTemplate: TemplateStringsArray | string,
-		params: SQLValue[]
-	): string {
-		if (typeof queryTemplate === "string") {
-			return queryTemplate
-		}
-
-		let sql = queryTemplate[0] || ""
-		for (let i = 0; i < params.length; i++) {
-			sql += `?${queryTemplate[i + 1] || ""}`
-		}
-		return sql
-	}
-
 	private convertToObjects<T = Record<string, SQLValue>>(result: {
 		rows: SQLValue[][] | SQLValue[]
 		columns: string[]
@@ -169,19 +145,13 @@ export class Client {
 }
 
 interface BatchInterface {
-	sql<T = Record<string, SQLValue>>(
-		queryTemplate: TemplateStringsArray | string,
-		...params: SQLValue[]
-	): Promise<T[]>
-	query<T = Record<string, SQLValue>>(sql: string, params?: SQLValue[]): Promise<T[]>
-	run(sql: string, params?: SQLValue[]): Promise<void>
+	sql<T = Record<string, SQLValue>>(sql: string, params: SQLParam): Promise<T[]>
+	query<T = Record<string, SQLValue>>(sql: string, params?: SQLParam): Promise<T[]>
+	run(sql: string, params?: SQLParam): Promise<void>
 }
 
 interface TransactionInterface {
-	sql<T = Record<string, SQLValue>>(
-		queryTemplate: TemplateStringsArray | string,
-		...params: SQLValue[]
-	): Promise<T[]>
-	query<T = Record<string, SQLValue>>(sql: string, params?: SQLValue[]): Promise<T[]>
-	run(sql: string, params?: SQLValue[]): Promise<void>
+	sql<T = Record<string, SQLValue>>(sql: string, params: SQLParam): Promise<T[]>
+	query<T = Record<string, SQLValue>>(sql: string, params?: SQLParam): Promise<T[]>
+	run(sql: string, params?: SQLParam): Promise<void>
 }

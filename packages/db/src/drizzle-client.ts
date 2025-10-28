@@ -1,5 +1,5 @@
 import { CoreSQLite } from "./core-sqlite"
-import type { DriverStatement, SQLValue } from "./types"
+import type { DriverStatement, SQLParam } from "./types"
 
 export class CoreSQLiteDrizzle extends CoreSQLite {
 	constructor(databasePath?: string) {
@@ -15,7 +15,7 @@ export class CoreSQLiteDrizzle extends CoreSQLite {
 
 	driver = async (
 		sql: string,
-		params?: SQLValue[],
+		params?: SQLParam,
 		method: "get" | "all" | "run" | "values" = "all"
 	) => {
 		if (
@@ -35,7 +35,7 @@ export class CoreSQLiteDrizzle extends CoreSQLite {
 	batchDriver = async (
 		queries: Array<{
 			sql: string
-			params?: SQLValue[]
+			params?: SQLParam
 			method?: "get" | "all" | "run" | "values"
 		}>
 	) => {
@@ -48,7 +48,7 @@ export class CoreSQLiteDrizzle extends CoreSQLite {
 		return await this.execBatch(statements)
 	}
 
-	sql = async (sql: string, params?: SQLValue[]) => {
+	sql = async (sql: string, params?: SQLParam) => {
 		return await this.driver(sql, params, "all")
 	}
 }

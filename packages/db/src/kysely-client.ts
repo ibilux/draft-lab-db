@@ -9,7 +9,7 @@ import {
 	SqliteQueryCompiler
 } from "kysely"
 import { Client } from "./client"
-import type { SQLValue } from "./types"
+import type { SQLParam, SQLValue } from "./types"
 
 interface Transaction {
 	query<T = Record<string, SQLValue>>(compiledQuery: unknown): Promise<T[]>
@@ -26,7 +26,7 @@ export class CoreSQLiteKysely extends Client {
 	}
 
 	async beginTransaction(): Promise<Transaction> {
-		const statements: Array<{ sql: string; params: SQLValue[] }> = []
+		const statements: Array<{ sql: string; params: SQLParam }> = []
 		let committed = false
 		let rolledBack = false
 		const client = this
@@ -38,7 +38,7 @@ export class CoreSQLiteKysely extends Client {
 				}
 				statements.push({
 					sql: compiledQuery.sql,
-					params: compiledQuery.parameters as SQLValue[]
+					params: compiledQuery.parameters as SQLParam
 				})
 				return []
 			},
@@ -113,7 +113,7 @@ class KyselyConnection implements DatabaseConnection {
 		let rows: Result[]
 
 		if (this.transaction === null) {
-			rows = (await this.client.query(query.sql, query.parameters as SQLValue[])) as Result[]
+			rows = (await this.client.query(query.sql, query.parameters as SQLParam)) as Result[]
 		} else {
 			rows = await this.transaction.query(query)
 		}
